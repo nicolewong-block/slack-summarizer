@@ -1,4 +1,4 @@
-# 🤖 Slack Daily Digest Bot
+# 🤖 Slack Daily Digest Bot aka TLDRbot
 
 **Get AI-powered summaries of your Slack messages!**
 
@@ -19,7 +19,7 @@ Click **"Sign in with Slack"** → Click **"Allow"**
 In any Slack channel, type:
 
 ```
-@Daily Summarizer give me a digest
+@TLDRbot give me a digest
 ```
 
 The bot will reply with an AI summary of your last 24 hours! ✨
