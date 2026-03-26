@@ -9,7 +9,7 @@ Gets a summary of your Slack messages every morning — action items, key update
 ### Step 1 — Authorize the app
 Click the link below and hit **Allow**:
 
-👉 **[Add to Slack](#)** ← Nicole will replace this with the real link
+👉 **[Add to Slack](https://slack.com/oauth/v2/authorize?client_id=5596012676549.10799568727585&scope=&user_scope=channels:history,channels:read,groups:history,groups:read,chat:write,users:read)**
 
 After authorizing, you'll be taken to a page. Go back to the app settings and copy your **User OAuth Token** (starts with `xoxp-`). Save it somewhere — you'll need it in Step 4.
 
