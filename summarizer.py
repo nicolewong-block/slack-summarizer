@@ -27,11 +27,12 @@ claude = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 # Slack helpers
 # ---------------------------------------------------------------------------
 
-def get_user_display_name(user_id: str, cache: dict) -> str:
+def get_user_display_name(user_id: str, cache: dict, client: WebClient = None) -> str:
     if user_id in cache:
         return cache[user_id]
+    client = client or slack
     try:
-        resp = slack.users_info(user=user_id)
+        resp = client.users_info(user=user_id)
         name = resp["user"].get("display_name") or resp["user"].get("real_name", user_id)
     except SlackApiError:
         name = user_id
@@ -54,14 +55,14 @@ def slack_call(fn, *args, **kwargs):
     raise RuntimeError("Slack API still rate limited after retries")
 
 
-def list_all_joined_channels() -> list[dict]:
+def list_all_joined_channels(client: WebClient = None) -> list[dict]:
     """Return all public + private channels the user is a member of."""
+    client = client or slack
     channels = []
     cursor = None
     while True:
-        # users.conversations is Tier 3 (50 req/min) vs conversations.list Tier 2 (20/min)
         resp = slack_call(
-            slack.users_conversations,
+            client.users_conversations,
             types="public_channel,private_channel",
             exclude_archived=True,
             limit=200,
@@ -74,13 +75,14 @@ def list_all_joined_channels() -> list[dict]:
     return channels
 
 
-def fetch_channel_messages(channel_id: str, oldest_ts: float) -> list[dict]:
+def fetch_channel_messages(channel_id: str, oldest_ts: float, client: WebClient = None) -> list[dict]:
     """Fetch human messages in a channel since oldest_ts (unix timestamp)."""
+    client = client or slack
     messages = []
     cursor = None
     while True:
         resp = slack_call(
-            slack.conversations_history,
+            client.conversations_history,
             channel=channel_id,
             oldest=str(oldest_ts),
             limit=200,
@@ -91,7 +93,6 @@ def fetch_channel_messages(channel_id: str, oldest_ts: float) -> list[dict]:
         if not cursor or not resp.get("has_more"):
             break
 
-    # Keep only real human messages (skip bots, join/leave notices, etc.)
     return [
         m for m in messages
         if m.get("type") == "message"
@@ -110,14 +111,15 @@ def find_channel_id_from_list(name: str, channels: list[dict]) -> str | None:
 # Build the message digest
 # ---------------------------------------------------------------------------
 
-def build_digest(channels: list[dict], oldest_ts: float) -> str:
+def build_digest(channels: list[dict], oldest_ts: float, client: WebClient = None) -> str:
     """Collect messages from all channels into a single formatted string."""
+    client = client or slack
     user_cache: dict[str, str] = {}
     sections: list[str] = []
 
     for ch in channels:
         try:
-            messages = fetch_channel_messages(ch["id"], oldest_ts)
+            messages = fetch_channel_messages(ch["id"], oldest_ts, client=client)
         except (SlackApiError, RuntimeError) as e:
             print(f"  Skipping #{ch['name']}: {e.response['error']}")
             continue
@@ -127,7 +129,7 @@ def build_digest(channels: list[dict], oldest_ts: float) -> str:
 
         lines = [f"\n=== #{ch['name']} ==="]
         for msg in reversed(messages):  # chronological order
-            sender = get_user_display_name(msg.get("user", "unknown"), user_cache)
+            sender = get_user_display_name(msg.get("user", "unknown"), user_cache, client=client)
             lines.append(f"{sender}: {msg['text'].strip()}")
 
         sections.append("\n".join(lines))
@@ -140,7 +142,7 @@ def build_digest(channels: list[dict], oldest_ts: float) -> str:
 # Claude summarization
 # ---------------------------------------------------------------------------
 
-def summarize(digest: str) -> str:
+def summarize(digest: str, user_name: str = "Nicole") -> str:
     today = datetime.now().strftime("%A, %B %d, %Y")
 
     with claude.messages.stream(
@@ -148,25 +150,27 @@ def summarize(digest: str) -> str:
         max_tokens=4096,
         thinking={"type": "adaptive"},
         system=(
-            "You are a concise assistant helping Nicole stay on top of her work. "
-            "You read her Slack messages and surface what actually needs her attention."
+            f"You are a concise assistant helping {user_name} stay on top of their work. "
+            f"You read their Slack messages and surface what actually needs their attention."
         ),
         messages=[{
             "role": "user",
-            "content": f"""Here are Nicole's Slack messages from the past 24 hours ({today}):
+            "content": f"""Here are {user_name}'s Slack messages from the past 24 hours ({today}):
 
 {digest}
 
-Write a brief daily digest with these sections (omit any section that has nothing to report):
+Write a brief daily digest. Use Slack mrkdwn formatting only: *bold* for emphasis, bullet points with •, no markdown headers (no ##), no double asterisks (**).
 
-## ✅ Action Items
-Things Nicole needs to do, respond to, or decide — include who asked and what's needed.
+Format exactly like this (omit any section that has nothing to report):
 
-## 📌 Key Updates
-Important decisions, announcements, or context worth knowing.
+✅ *Action Items*
+• <who>: <what needs to be done>
 
-## 👀 FYI
-Low-priority items that are nice to be aware of.
+📌 *Key Updates*
+• <update>
+
+👀 *FYI*
+• <low priority item>
 
 Be specific and concise. Skip pleasantries.""",
         }],
