@@ -1,4 +1,4 @@
-# Daily Slack Digest
+# Daily Slack Digest - @TLDRbot
 
 Gets a summary of your Slack messages every morning — action items, key updates, and FYIs posted to a personal Slack channel.
 
