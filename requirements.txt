@@ -1,0 +1,3 @@
+anthropic
+slack-sdk
+python-dotenv
