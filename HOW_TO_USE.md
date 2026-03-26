@@ -1,6 +1,6 @@
-# 🤖 How to Use the Slack Daily Digest Bot
+# 🤖 How to Use @TLDRbot (Slack Daily Digest Bot)
 
-**Get AI summaries of your Slack messages by @mentioning the bot!**
+**Get AI summaries of your Slack messages by mentioning @TLDRbot!**
 
 ---
 
@@ -40,7 +40,7 @@ Once you're connected, using the bot is super simple!
 In **any Slack channel**, just @mention the bot:
 
 ```
-@Daily Summarizer give me a digest
+@TLDRbot give me a digest
 ```
 
 The bot will:
@@ -65,17 +65,17 @@ The AI filters out noise and focuses on what actually matters to you!
 
 **Get a summary:**
 ```
-@Daily Summarizer give me a digest
+@TLDRbot give me a digest
 ```
 
 **Quick check:**
 ```
-@Daily Summarizer what did I miss?
+@TLDRbot what did I miss?
 ```
 
 **After vacation:**
 ```
-@Daily Summarizer catch me up
+@TLDRbot catch me up
 ```
 
 The bot understands natural language — just @mention it and ask!
